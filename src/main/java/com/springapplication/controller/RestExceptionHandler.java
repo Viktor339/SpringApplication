@@ -1,5 +1,6 @@
 package com.springapplication.controller;
 
+import com.springapplication.service.exception.AuthenticationException;
 import com.springapplication.service.exception.ExceptionResponse;
 import com.springapplication.service.exception.JwtAuthenticationException;
 import com.springapplication.service.exception.UserAlreadyExistException;
@@ -44,6 +45,18 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     @ResponseBody
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ExceptionResponse handleUserAlreadyExistException(UserAlreadyExistException ex) {
+        return ExceptionResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.name())
+                .message(ex.getMessage())
+                .build();
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ExceptionResponse handleAuthenticationException(AuthenticationException ex) {
         return ExceptionResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())

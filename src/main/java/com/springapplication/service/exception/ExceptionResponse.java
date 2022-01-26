@@ -12,4 +12,14 @@ public class ExceptionResponse {
     private int status;
     private String error;
     private String message;
+
+    @Override
+    public String toString() {
+        return "{" +
+                "timestamp=" + timestamp +
+                ", status=" + status +
+                ", error='" + error + '\'' +
+                ", message='" + message + '\'' +
+                '}';
+    }
 }

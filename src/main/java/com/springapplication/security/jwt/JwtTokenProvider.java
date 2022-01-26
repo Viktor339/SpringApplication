@@ -8,10 +8,8 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -20,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtTokenProvider {
@@ -32,13 +31,6 @@ public class JwtTokenProvider {
 
     @Value("${jwt.token.refreshExpired}")
     private long refreshExpired;
-
-    private final UserDetailsService userDetailsService;
-
-    public JwtTokenProvider(UserDetailsService userDetailsService) {
-        this.userDetailsService = userDetailsService;
-    }
-
 
     @PostConstruct
     protected void init() {
@@ -75,12 +67,20 @@ public class JwtTokenProvider {
 
 
     public Authentication getAuthentication(String token) {
-        UserDetails userDetails = this.userDetailsService.loadUserByUsername(getUsername(token));
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
+        return new JwtAuthToken(token,
+                getRoles(token).stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList()));
     }
 
-    public String getUsername(String token) {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody().getSubject();
+    public List<String> getRoles(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .getBody();
+
+
+        return (List<String>) claims.get("roles");
     }
 
     public String resolveToken(HttpServletRequest req) {
@@ -93,10 +93,10 @@ public class JwtTokenProvider {
 
     public void validateToken(String token) {
         try {
-            Jwts
-                    .parser()
+            Jwts.parser()
                     .setSigningKey(secret)
-                    .parseClaimsJws(token);
+                    .parseClaimsJws(token)
+                    .getBody();
         } catch (JwtException e) {
             throw new JwtAuthenticationException("JWT token is expired or invalid");
         }

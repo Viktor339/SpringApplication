@@ -6,8 +6,8 @@ import com.springapplication.controller.response.LoginResponse;
 import com.springapplication.model.User;
 import com.springapplication.repository.UserRepository;
 import com.springapplication.security.jwt.JwtTokenProvider;
+import com.springapplication.service.exception.AuthenticationException;
 import com.springapplication.service.exception.UserAlreadyExistException;
-import com.springapplication.service.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,9 +21,12 @@ public class UserService {
 
     public LoginResponse login(LoginRequest loginRequest) {
 
-        User user = userRepository.findByUsernameAndPassword(loginRequest.getLogin(), loginRequest.getPassword())
-                .orElseThrow(() -> new UserNotFoundException("Incorrect username or password")
-        );
+        User user = userRepository.findByUsername(loginRequest.getLogin()).orElseThrow(()
+                -> new AuthenticationException("Incorrect username or password"));
+
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            throw new AuthenticationException("Incorrect username or password");
+        }
 
         String accessToken = jwtTokenProvider.createAccessToken(user);
         String refreshToken = jwtTokenProvider.createRefreshToken();
